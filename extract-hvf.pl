@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
+use Time::Piece;
 
 # Retrieves ppnum, ppgroup, contrast, total sum of the habituation looking times, and pre/post looking times for a .hvf-file.
 sub processFile
@@ -8,6 +9,7 @@ sub processFile
 	my $ppnum;
 	my $ppgroup;
 	my $contrast;
+    my $date;
 	my $totalsum = 0;
 	my @looktimes;
 
@@ -28,6 +30,11 @@ sub processFile
 		{
 			$contrast = $1;
 		}
+		elsif (/^! started\:\s+(.*?)\sCES?T\s([0-9]+)$/)
+		{
+			my $t = Time::Piece->strptime($1 . " " . $2, "%a %b %d %T %Y");
+			$date = $t->strftime("%Y-%m-%d %T");
+		}
 		elsif (/^[^!].*HAB/ && @parts == 9)
 		{
 			$totalsum += $parts[-1];
@@ -40,11 +47,11 @@ sub processFile
 
 	close $in || die $!;
 
-	return ($ppnum, $ppgroup, $contrast, @looktimes, $totalsum);
+	return ($ppnum, $ppgroup, $contrast, $date, @looktimes, $totalsum);
 }
 
 open (my $out, ">", "out.csv") || die $!;
-print $out "filename;ppnum;ppgroup;contrast;pretestLT;posttestLT;habLT\n";
+print $out "filename;ppnum;ppgroup;contrast;date;pretestLT;posttestLT;habLT\n";
 
 my $fcount = 0;
 my $logcount = 0;
@@ -66,4 +73,3 @@ foreach my $file (<hvf.*>)
 
 close $out || die $!;
 print "total hvf.nnn files processed: $fcount, .log files: $logcount\n";
-
